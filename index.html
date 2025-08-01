@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedInsure - Insurance Cost Prediction</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React and ReactDOM CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel Standalone for JSX transformation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        /* Custom styles for better visual hierarchy */
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .card-shadow {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .input-focus:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen gradient-bg">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+        const { createRoot } = ReactDOM;
+
+        // Placeholder prediction function simulating backend ML model
+        const simulatePrediction = (formData) => {
+            // Encoding categorical variables as per backend logic
+            const encodedSex = formData.sex === 'male' ? 0 : 1;
+            const encodedSmoker = formData.smoker === 'yes' ? 0 : 1;
+            const regionMap = { 'southeast': 0, 'southwest': 1, 'northeast': 2, 'northwest': 3 };
+            const encodedRegion = regionMap[formData.region];
+            
+            // Simulating linear regression prediction with realistic coefficients
+            // This is a placeholder - actual prediction would come from Python backend
+            const baseCost = 1000;
+            const ageFactor = parseFloat(formData.age) * 257.85;
+            const sexFactor = encodedSex * 131.31;
+            const bmiFactor = parseFloat(formData.bmi) * 339.19;
+            const childrenFactor = parseInt(formData.children) * 475.50;
+            const smokerFactor = encodedSmoker === 0 ? 23848.53 : 0; // Heavy penalty for smokers
+            const regionFactor = encodedRegion * 476.30;
+            
+            const prediction = baseCost + ageFactor + sexFactor + bmiFactor + childrenFactor + smokerFactor + regionFactor;
+            
+            return Math.max(prediction, 1000); // Ensure minimum cost
+        };
+
+        const InsurancePredictionApp = () => {
+            // Managing form state with individual field tracking
+            const [formData, setFormData] = useState({
+                age: '',
+                sex: '',
+                bmi: '',
+                children: '',
+                smoker: '',
+                region: ''
+            });
+            
+            // Managing validation errors and prediction results
+            const [errors, setErrors] = useState({});
+            const [prediction, setPrediction] = useState(null);
+            const [isLoading, setIsLoading] = useState(false);
+
+            // Handling input changes with real-time validation clearing
+            const handleInputChange = (field, value) => {
+                setFormData(prev => ({ ...prev, [field]: value }));
+                
+                // Clearing specific field error when user starts typing
+                if (errors[field]) {
+                    setErrors(prev => ({ ...prev, [field]: '' }));
+                }
+            };
+
+            // Validating form inputs with comprehensive checks
+            const validateForm = () => {
+                const newErrors = {};
+                
+                // Age validation
+                if (!formData.age) {
+                    newErrors.age = 'Age is required';
+                } else if (formData.age < 18 || formData.age > 100) {
+                    newErrors.age = 'Age must be between 18 and 100';
+                }
+                
+                // Sex validation
+                if (!formData.sex) {
+                    newErrors.sex = 'Sex selection is required';
+                }
+                
+                // BMI validation
+                if (!formData.bmi) {
+                    newErrors.bmi = 'BMI is required';
+                } else if (formData.bmi < 10 || formData.bmi > 50) {
+                    newErrors.bmi = 'BMI must be between 10 and 50';
+                }
+                
+                // Children validation
+                if (formData.children === '') {
+                    newErrors.children = 'Number of children is required';
+                } else if (formData.children < 0 || formData.children > 10) {
+                    newErrors.children = 'Number of children must be between 0 and 10';
+                }
+                
+                // Smoker validation
+                if (!formData.smoker) {
+                    newErrors.smoker = 'Smoker status is required';
+                }
+                
+                // Region validation
+                if (!formData.region) {
+                    newErrors.region = 'Region selection is required';
+                }
+                
+                return newErrors;
+            };
+
+            // Handling form submission with validation and prediction
+            const handleSubmit = () => {
+                const validationErrors = validateForm();
+                
+                if (Object.keys(validationErrors).length > 0) {
+                    setErrors(validationErrors);
+                    setPrediction(null);
+                    return;
+                }
+                
+                setIsLoading(true);
+                setErrors({});
+                
+                // Simulating API call delay for better UX
+                setTimeout(() => {
+                    try {
+                        const predictedCost = simulatePrediction(formData);
+                        setPrediction(predictedCost);
+                    } catch (error) {
+                        setErrors({ general: 'An error occurred during prediction. Please try again.' });
+                    } finally {
+                        setIsLoading(false);
+                    }
+                }, 1000);
+            };
+
+            // Resetting form to initial state
+            const handleReset = () => {
+                setFormData({
+                    age: '',
+                    sex: '',
+                    bmi: '',
+                    children: '',
+                    smoker: '',
+                    region: ''
+                });
+                setErrors({});
+                setPrediction(null);
+            };
+
+            return (
+                <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
+                    <div className="max-w-2xl mx-auto">
+                        {/* Rendering application header with branding */}
+                        <div className="text-center mb-8">
+                            <h1 className="text-4xl font-bold text-white mb-2">MedInsure</h1>
+                            <p className="text-blue-100 text-lg">Medical Insurance Cost Prediction</p>
+                        </div>
+
+                        {/* Rendering main prediction card container */}
+                        <div className="bg-white rounded-2xl card-shadow p-8">
+                            <div className="mb-6">
+                                <h2 className="text-2xl font-semibold text-gray-800 mb-2">
+                                    Get Your Insurance Cost Estimate
+                                </h2>
+                                <p className="text-gray-600">
+                                    Fill in your details below to receive a personalized insurance cost prediction.
+                                </p>
+                            </div>
+
+                            {/* Rendering input form with comprehensive validation */}
+                            <div className="space-y-6">
+                                {/* Age input field */}
+                                <div>
+                                    <label htmlFor="age" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Age *
+                                    </label>
+                                    <input
+                                        id="age"
+                                        type="number"
+                                        min="18"
+                                        max="100"
+                                        value={formData.age}
+                                        onChange={(e) => handleInputChange('age', e.target.value)}
+                                        className={`w-full px-4 py-3 border rounded-lg input-focus transition-colors ${
+                                            errors.age ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-blue-400'
+                                        }`}
+                                        placeholder="Enter your age (18-100)"
+                                        aria-describedby={errors.age ? "age-error" : undefined}
+                                    />
+                                    {errors.age && (
+                                        <p id="age-error" className="mt-1 text-sm text-red-600" role="alert">
+                                            {errors.age}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Sex selection dropdown */}
+                                <div>
+                                    <label htmlFor="sex" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Sex *
+                                    </label>
+                                    <select
+                                        id="sex"
+                                        value={formData.sex}
+                                        onChange={(e) => handleInputChange('sex', e.target.value)}
+                                        className={`w-full px-4 py-3 border rounded-lg input-focus transition-colors ${
+                                            errors.sex ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-blue-400'
+                                        }`}
+                                        aria-describedby={errors.sex ? "sex-error" : undefined}
+                                    >
+                                        <option value="">Select your sex</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                    </select>
+                                    {errors.sex && (
+                                        <p id="sex-error" className="mt-1 text-sm text-red-600" role="alert">
+                                            {errors.sex}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* BMI input field */}
+                                <div>
+                                    <label htmlFor="bmi" className="block text-sm font-medium text-gray-700 mb-2">
+                                        BMI (Body Mass Index) *
+                                    </label>
+                                    <input
+                                        id="bmi"
+                                        type="number"
+                                        step="0.1"
+                                        min="10"
+                                        max="50"
+                                        value={formData.bmi}
+                                        onChange={(e) => handleInputChange('bmi', e.target.value)}
+                                        className={`w-full px-4 py-3 border rounded-lg input-focus transition-colors ${
+                                            errors.bmi ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-blue-400'
+                                        }`}
+                                        placeholder="Enter your BMI (10-50)"
+                                        aria-describedby={errors.bmi ? "bmi-error" : undefined}
+                                    />
+                                    {errors.bmi && (
+                                        <p id="bmi-error" className="mt-1 text-sm text-red-600" role="alert">
+                                            {errors.bmi}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Children count input */}
+                                <div>
+                                    <label htmlFor="children" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Number of Children *
+                                    </label>
+                                    <input
+                                        id="children"
+                                        type="number"
+                                        min="0"
+                                        max="10"
+                                        value={formData.children}
+                                        onChange={(e) => handleInputChange('children', e.target.value)}
+                                        className={`w-full px-4 py-3 border rounded-lg input-focus transition-colors ${
+                                            errors.children ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-blue-400'
+                                        }`}
+                                        placeholder="Enter number of children (0-10)"
+                                        aria-describedby={errors.children ? "children-error" : undefined}
+                                    />
+                                    {errors.children && (
+                                        <p id="children-error" className="mt-1 text-sm text-red-600" role="alert">
+                                            {errors.children}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Smoker status dropdown */}
+                                <div>
+                                    <label htmlFor="smoker" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Do you smoke? *
+                                    </label>
+                                    <select
+                                        id="smoker"
+                                        value={formData.smoker}
+                                        onChange={(e) => handleInputChange('smoker', e.target.value)}
+                                        className={`w-full px-4 py-3 border rounded-lg input-focus transition-colors ${
+                                            errors.smoker ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-blue-400'
+                                        }`}
+                                        aria-describedby={errors.smoker ? "smoker-error" : undefined}
+                                    >
+                                        <option value="">Select smoking status</option>
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                    {errors.smoker && (
+                                        <p id="smoker-error" className="mt-1 text-sm text-red-600" role="alert">
+                                            {errors.smoker}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Region selection dropdown */}
+                                <div>
+                                    <label htmlFor="region" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Region *
+                                    </label>
+                                    <select
+                                        id="region"
+                                        value={formData.region}
+                                        onChange={(e) => handleInputChange('region', e.target.value)}
+                                        className={`w-full px-4 py-3 border rounded-lg input-focus transition-colors ${
+                                            errors.region ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-blue-400'
+                                        }`}
+                                        aria-describedby={errors.region ? "region-error" : undefined}
+                                    >
+                                        <option value="">Select your region</option>
+                                        <option value="southeast">Southeast</option>
+                                        <option value="southwest">Southwest</option>
+                                        <option value="northeast">Northeast</option>
+                                        <option value="northwest">Northwest</option>
+                                    </select>
+                                    {errors.region && (
+                                        <p id="region-error" className="mt-1 text-sm text-red-600" role="alert">
+                                            {errors.region}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Displaying general error messages */}
+                            {errors.general && (
+                                <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                    <p className="text-red-600 text-sm" role="alert">{errors.general}</p>
+                                </div>
+                            )}
+
+                            {/* Rendering action buttons for form submission and reset */}
+                            <div className="mt-8 flex flex-col sm:flex-row gap-4">
+                                <button
+                                    onClick={handleSubmit}
+                                    disabled={isLoading}
+                                    className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                    aria-describedby="predict-button-desc"
+                                >
+                                    {isLoading ? (
+                                        <span className="flex items-center justify-center">
+                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Calculating...
+                                        </span>
+                                    ) : (
+                                        'Predict Insurance Cost'
+                                    )}
+                                </button>
+                                <button
+                                    onClick={handleReset}
+                                    disabled={isLoading}
+                                    className="flex-1 sm:flex-none bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-gray-700 font-semibold py-3 px-6 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                                >
+                                    Reset Form
+                                </button>
+                            </div>
+
+                            {/* Displaying prediction results with prominent styling */}
+                            {prediction && (
+                                <div className="mt-8 p-6 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl">
+                                    <div className="text-center">
+                                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                                            Estimated Insurance Cost
+                                        </h3>
+                                        <div className="text-4xl font-bold text-green-600 mb-2">
+                                            ${prediction.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </div>
+                                        <p className="text-sm text-gray-600">
+                                            This is a simulated prediction for demonstration purposes.
+                                            <br />
+                                            Actual predictions would come from the trained ML model backend.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Providing disclaimer and additional information */}
+                            <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                <h4 className="font-semibold text-blue-800 mb-2">Important Note</h4>
+                                <p className="text-sm text-blue-700">
+                                    This application uses a placeholder prediction function for demonstration purposes. 
+                                    In a production environment, predictions would be generated by a trained Linear Regression 
+                                    model running on a Python backend server. The actual model considers complex relationships 
+                                    between age, sex, BMI, number of children, smoking status, and geographic region to 
+                                    provide accurate insurance cost estimates.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Rendering footer with additional context */}
+                        <div className="text-center mt-8 text-blue-100">
+                            <p className="text-sm">
+                                Built with React, Tailwind CSS, and Machine Learning
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Mounting the React application to the DOM
+        const root = createRoot(document.getElementById('root'));
+        root.render(<InsurancePredictionApp />);
+    </script>
+</body>
+</html>
